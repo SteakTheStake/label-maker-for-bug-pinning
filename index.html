@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Make and print 5.5 × 1.5 cm insect pinning labels on US Letter paper.">
+  <title>Camella’s Insect Label Maker</title>
+  <style>
+    * { box-sizing: border-box; }
+    :root { font-family: Arial, sans-serif; color: #202b24; background: #f5f6f2; }
+    body { margin: 0; }
+    main { max-width: 1120px; margin: auto; padding: 28px 20px 50px; }
+    h1 { font-size: clamp(1.5rem, 4vw, 2rem); margin: 0 0 10px; }
+    h2 { font-size: 1.15rem; margin: 0 0 12px; }
+    p { line-height: 1.5; }
+    .intro { max-width: 750px; color: #4d5a51; margin: 0 0 20px; }
+    .toolbar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+    button, input { font: inherit; }
+    button { cursor: pointer; border: 1px solid #9ba69d; border-radius: 6px; padding: 10px 14px; background: white; color: #202b24; }
+    button:hover { background: #eaf0e8; }
+    .primary { color: white; background: #315c42; border-color: #315c42; }
+    .primary:hover { background: #254a34; }
+    button:focus-visible, input:focus-visible { outline: 3px solid #699a78; outline-offset: 2px; }
+    .count { width: 5em; padding: 9px; border: 1px solid #9ba69d; border-radius: 5px; }
+    .note { color: #4d5a51; font-size: .9rem; }
+    .print-help { background: #e9eee5; padding: 12px 16px; border-radius: 6px; }
+    #status { min-height: 1.4em; font-size: .9rem; }
+    .editors { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 290px), 1fr)); gap: 14px; margin: 16px 0 28px; }
+    .editor { min-width: 0; background: white; border: 1px solid #cbd2c8; border-radius: 8px; padding: 16px; }
+    .editor-header { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 12px; }
+    .editor-header h3 { margin: 0; font-size: 1rem; }
+    .remove { font-size: .85rem; padding: 5px 9px; }
+    .field { display: block; font-size: .85rem; margin: 10px 0; }
+    .field input { width: 100%; display: block; margin-top: 5px; border: 1px solid #a6b1a8; border-radius: 4px; padding: 8px; }
+    .sex-toggle { display: flex; gap: 7px; align-items: center; font-size: .9rem; margin-top: 12px; }
+    .sex-toggle input { width: 17px; height: 17px; margin: 0; }
+    [hidden] { display: none !important; }
+    .overflow-note { color: #a12518; font-size: .85rem; margin: 10px 0 0; }
+    .preview-scroll { overflow-x: auto; padding: 3px; }
+    .sheet { width: 8.5in; height: 11in; padding: .5in; background: white; margin: 0 auto 20px; box-shadow: 0 1px 6px #0002; }
+    .label-grid { display: grid; grid-template-columns: repeat(3, 55mm); grid-auto-rows: 15mm; gap: 3mm 4mm; align-content: start; }
+    .specimen { width: 55mm; height: 15mm; border: .15mm solid #555; padding: .6mm .8mm; color: black; font-family: Arial, sans-serif; overflow: hidden; }
+    .label-line { font-size: 7pt; line-height: 1.05; white-space: nowrap; }
+    .label-key { font-weight: bold; }
+    .scientific { font-style: italic; }
+    .specimen.too-long { outline: 2px solid #a12518; outline-offset: 1px; }
+    .print-warning { display: none; }
+    @page { size: 8.5in 11in; margin: .5in; }
+    @media print {
+      html, body { margin: 0; padding: 0; background: white; }
+      main { max-width: none; margin: 0; padding: 0; }
+      .screen-only { display: none !important; }
+      .preview-scroll { overflow: visible; padding: 0; }
+      .sheet { width: 7.5in; height: auto; padding: 0; margin: 0; box-shadow: none; break-after: page; page-break-after: always; }
+      .sheet:last-child { break-after: auto; page-break-after: auto; }
+      .specimen { break-inside: avoid; page-break-inside: avoid; }
+      .specimen.too-long { outline: none; }
+      body.has-overflow #sheets { display: none; }
+      body.has-overflow .print-warning { display: block; color: black; font: 14pt Arial, sans-serif; }
+    }
+  </style>
+</head>
+<body>
+<main>
+  <header class="screen-only">
+    <h1>Camella’s Insect Label Maker</h1>
+    <p class="intro">Fill in one label for each pinned insect. Each cut-out label is <strong>5.5 cm wide × 1.5 cm tall</strong>. Include sex only where you need it.</p>
+    <div class="toolbar">
+      <label for="count">Labels</label>
+      <input class="count" id="count" type="number" min="1" max="420" step="1" value="5" inputmode="numeric" autocomplete="off">
+      <button id="set-count" type="button">Set count</button>
+      <button id="add" type="button">+ Add label</button>
+      <button id="download" type="button">Download HTML copy</button>
+      <button id="print" class="primary" type="button">Print / Save PDF</button>
+    </div>
+    <p class="note">This page does not upload or autosave your entries. Download an editable HTML copy to keep your work; it also works offline. Refreshing restores the starting form.</p>
+    <p class="note print-help"><strong>Print settings:</strong> US Letter (8.5 × 11 in), portrait, <strong>100% / Actual size</strong>, headers and footers off. Keep the page’s 0.5-inch margins; avoid “Fit to page.” Cut along the outer borders. Measure one printed label before cutting the whole sheet.</p>
+    <p id="status" role="status" aria-live="polite"></p>
+  </header>
+  <section class="screen-only" aria-labelledby="edit-heading">
+    <h2 id="edit-heading">Label details</h2>
+    <div id="editors" class="editors"></div>
+  </section>
+  <section aria-label="Printable labels">
+    <div class="screen-only">
+      <h2>Print preview</h2>
+      <p class="note" id="preview-summary"></p>
+      <p class="note">The preview may scroll on small screens. Physical dimensions are set for printing; screen size varies by device.</p>
+    </div>
+    <p class="print-warning">Some label text is too long. Return to the page and shorten the fields marked in red before printing.</p>
+    <div class="preview-scroll"><div id="sheets"></div></div>
+  </section>
+  <noscript><p>Enable JavaScript to edit labels, download a copy, and generate printable sheets. No account or internet connection is needed once this file is downloaded.</p></noscript>
+</main>
+<script id="saved-labels" type="application/json">null</script>
+<script>
+(() => {
+  'use strict';
+  const PER_PAGE = 42;
+  const MAX_LABELS = 420;
+  const fields = [
+    ['family', 'Family'], ['species', 'Species'], ['sex', 'Sex'],
+    ['common', 'Common name'], ['location', 'Location & date']
+  ];
+  const emptyLabel = () => ({family: '', species: '', sex: '', common: '', location: '', includeSex: false});
+  const editors = document.getElementById('editors');
+  const sheets = document.getElementById('sheets');
+  const countInput = document.getElementById('count');
+  const status = document.getElementById('status');
+  const source = '<!doctype html>\n' + document.documentElement.outerHTML;
+  let labels = Array.from({length: 5}, emptyLabel);
+  try {
+    const saved = JSON.parse(document.getElementById('saved-labels').textContent);
+    if (Array.isArray(saved) && saved.length > 0 && saved.length <= MAX_LABELS) {
+      labels = saved.map(item => {
+        const clean = emptyLabel();
+        for (const [key] of fields) clean[key] = typeof item?.[key] === 'string' ? item[key] : '';
+        clean.includeSex = item?.includeSex === true;
+        return clean;
+      });
+    }
+  } catch { /* An invalid saved payload falls back to five blank labels. */ }
+
+  function drawEditors() {
+    editors.replaceChildren();
+    labels.forEach((data, index) => {
+      const card = document.createElement('article');
+      card.className = 'editor';
+      card.dataset.index = index;
+      const header = document.createElement('div');
+      header.className = 'editor-header';
+      const heading = document.createElement('h3');
+      heading.textContent = `Label ${index + 1}`;
+      const remove = document.createElement('button');
+      remove.type = 'button';
+      remove.className = 'remove';
+      remove.textContent = 'Remove';
+      remove.setAttribute('aria-label', `Remove label ${index + 1}`);
+      remove.disabled = labels.length === 1;
+      remove.addEventListener('click', () => {
+        if (!isFilled(data) || window.confirm(`Remove label ${index + 1} and its entries?`)) {
+          labels.splice(index, 1);
+          redraw();
+          editors.children[Math.min(index, labels.length - 1)].querySelector('input').focus();
+          status.textContent = 'Label removed.';
+        }
+      });
+      header.append(heading, remove);
+      card.append(header);
+      let sexField;
+      for (const [key, title] of fields) {
+        const field = document.createElement('label');
+        field.className = 'field';
+        field.textContent = title;
+        const input = document.createElement('input');
+        input.type = 'text';
+        input.name = `label-${index + 1}-${key}`;
+        input.autocomplete = 'off';
+        input.value = data[key];
+        input.addEventListener('input', () => {
+          data[key] = input.value;
+          drawPreview();
+          status.textContent = '';
+        });
+        field.append(input);
+        if (key === 'sex') { sexField = field; field.hidden = !data.includeSex; }
+        card.append(field);
+      }
+      const toggleLabel = document.createElement('label');
+      toggleLabel.className = 'sex-toggle';
+      const toggle = document.createElement('input');
+      toggle.type = 'checkbox';
+      toggle.checked = data.includeSex;
+      toggle.addEventListener('change', () => {
+        data.includeSex = toggle.checked;
+        sexField.hidden = !toggle.checked;
+        drawPreview();
+      });
+      toggleLabel.append(toggle, 'Include sex on this label');
+      const warning = document.createElement('p');
+      warning.className = 'overflow-note';
+      warning.hidden = true;
+      warning.textContent = 'Text is too long to fit. Shorten the highlighted fields before printing.';
+      card.append(toggleLabel, warning);
+      editors.append(card);
+    });
+    countInput.value = labels.length;
+    document.getElementById('add').disabled = labels.length >= MAX_LABELS;
+  }
+
+  function drawPreview() {
+    sheets.replaceChildren();
+    let grid;
+    labels.forEach((data, index) => {
+      if (index % PER_PAGE === 0) {
+        const sheet = document.createElement('div');
+        sheet.className = 'sheet';
+        grid = document.createElement('div');
+        grid.className = 'label-grid';
+        sheet.append(grid);
+        sheets.append(sheet);
+      }
+      const specimen = document.createElement('div');
+      specimen.className = 'specimen';
+      specimen.setAttribute('aria-label', `Label ${index + 1} preview`);
+      for (const [key, title] of fields) {
+        if (key === 'sex' && !data.includeSex) continue;
+        const line = document.createElement('div');
+        line.className = 'label-line';
+        line.dataset.field = key;
+        const caption = document.createElement('span');
+        caption.className = 'label-key';
+        caption.textContent = title + ': ';
+        const value = document.createElement('span');
+        if (key === 'species') value.className = 'scientific';
+        value.textContent = data[key];
+        line.append(caption, value);
+        specimen.append(line);
+      }
+      grid.append(specimen);
+    });
+    fitText();
+    const pages = Math.ceil(labels.length / PER_PAGE);
+    document.getElementById('preview-summary').textContent = `${labels.length} label${labels.length === 1 ? '' : 's'} · ${pages} Letter sheet${pages === 1 ? '' : 's'} · up to 42 labels per sheet`;
+  }
+
+  function fitText() {
+    let hasOverflow = false;
+    sheets.querySelectorAll('.specimen').forEach((specimen, index) => {
+      let overflow = false;
+      editors.children[index].querySelectorAll('.field input').forEach(input => input.removeAttribute('aria-invalid'));
+      specimen.querySelectorAll('.label-line').forEach(line => {
+        // Fit each line without changing the physical label dimensions.
+        let size = 7;
+        line.style.fontSize = size + 'pt';
+        while (line.scrollWidth > line.clientWidth && size > 5) {
+          size = Math.max(5, size - .25);
+          line.style.fontSize = size + 'pt';
+        }
+        if (line.scrollWidth > line.clientWidth) {
+          overflow = true;
+          editors.children[index].querySelector(`[name="label-${index + 1}-${line.dataset.field}"]`).setAttribute('aria-invalid', 'true');
+        }
+      });
+      if (specimen.scrollHeight > specimen.clientHeight) overflow = true;
+      specimen.classList.toggle('too-long', overflow);
+      editors.children[index].querySelector('.overflow-note').hidden = !overflow;
+      hasOverflow ||= overflow;
+    });
+    document.body.classList.toggle('has-overflow', hasOverflow);
+    return !hasOverflow;
+  }
+
+  function redraw() { drawEditors(); drawPreview(); }
+  function isFilled(data) { return fields.some(([key]) => data[key].trim()); }
+
+  document.getElementById('set-count').addEventListener('click', () => {
+    const count = Number(countInput.value);
+    if (!Number.isInteger(count) || count < 1 || count > MAX_LABELS) {
+      status.textContent = 'Enter a whole number from 1 to 420 (up to 10 sheets).';
+      countInput.focus();
+      return;
+    }
+    if (count < labels.length && labels.slice(count).some(isFilled) &&
+        !window.confirm(`Keep the first ${count} labels and discard the entries in the remaining labels?`)) {
+      countInput.value = labels.length;
+      return;
+    }
+    labels = labels.slice(0, count);
+    while (labels.length < count) labels.push(emptyLabel());
+    redraw();
+    status.textContent = `Ready for ${count} labels.`;
+  });
+  countInput.addEventListener('keydown', event => {
+    if (event.key === 'Enter') document.getElementById('set-count').click();
+  });
+  document.getElementById('add').addEventListener('click', () => {
+    if (labels.length >= MAX_LABELS) return;
+    labels.push(emptyLabel());
+    redraw();
+    editors.lastElementChild.querySelector('input').focus();
+    status.textContent = 'New label added.';
+  });
+  document.getElementById('print').addEventListener('click', () => {
+    if (!fitText()) {
+      status.textContent = 'Shorten the fields marked in red before printing.';
+      editors.querySelector('[aria-invalid="true"]')?.focus();
+      return;
+    }
+    window.print();
+  });
+  window.addEventListener('beforeprint', fitText);
+  document.getElementById('download').addEventListener('click', () => {
+    // Reuse the clean source, so downloaded copies never accumulate rendered labels.
+    // Escaping '<' keeps entered text from closing the inert JSON script element.
+    const safeJSON = JSON.stringify(labels).replace(/</g, '\\u003c');
+    const copy = source.replace(/(<script id="saved-labels" type="application\/json">)[\s\S]*?(<\/script>)/,
+      (_, opening, closing) => opening + safeJSON + closing);
+    const url = URL.createObjectURL(new Blob([copy], {type: 'text/html;charset=utf-8'}));
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'camellas-insect-labels.html';
+    document.body.append(link);
+    link.click();
+    link.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    status.textContent = 'Downloaded an editable copy with your current entries.';
+  });
+  redraw();
+})();
+</script>
+</body>
+</html>
