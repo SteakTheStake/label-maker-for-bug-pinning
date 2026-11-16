@@ -69,7 +69,7 @@
       <input class="count" id="count" type="number" min="1" max="420" step="1" value="5" inputmode="numeric" autocomplete="off">
       <button id="set-count" type="button">Set</button>
       <button id="add" type="button">+ Add</button>
-      <label class="sex-toggle"><input id="show-titles" type="checkbox" checked autocomplete="off" aria-controls="sheets">Show titles</label>
+      <label class="sex-toggle"><input id="show-titles" type="checkbox" autocomplete="off" aria-controls="sheets">Show titles</label>
       <button id="download" type="button" title="Save an editable HTML copy">Download</button>
       <button id="print" class="primary" type="button" title="Print or save as PDF">Print / PDF</button>
     </div>
@@ -86,7 +86,7 @@
   <noscript><p>Enable JavaScript to use the label maker.</p></noscript>
 </main>
 <script id="saved-labels" type="application/json">null</script>
-<script id="saved-settings" type="application/json">{"showTitles":true}</script>
+<script id="saved-settings" type="application/json">{"showTitles":false}</script>
 <script>
 (() => {
   'use strict';
@@ -104,10 +104,10 @@
   const status = document.getElementById('status');
   const source = '<!doctype html>\n' + document.documentElement.outerHTML;
   let labels = Array.from({length: 5}, emptyLabel);
-  let showTitles = true;
+  let showTitles = false;
   try {
-    showTitles = JSON.parse(document.getElementById('saved-settings').textContent)?.showTitles !== false;
-  } catch { /* An invalid saved setting falls back to showing field titles. */ }
+    showTitles = JSON.parse(document.getElementById('saved-settings').textContent)?.showTitles === true;
+  } catch { /* An invalid saved setting falls back to hiding field titles. */ }
   showTitlesInput.checked = showTitles;
   try {
     const saved = JSON.parse(document.getElementById('saved-labels').textContent);
