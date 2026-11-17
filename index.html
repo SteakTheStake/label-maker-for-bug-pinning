@@ -155,6 +155,7 @@
         const input = document.createElement('input');
         input.type = 'text';
         input.name = `label-${index + 1}-${key}`;
+        if (key === 'species') input.className = 'scientific';
         input.autocomplete = 'off';
         input.value = data[key];
         input.addEventListener('input', () => {
